@@ -41,20 +41,19 @@ void setup() {
   delay(500);
   // recieves version just for testing
   test_return = sendData("AT+GMR\r\n", 2000); 
-  delay(2000);
+  delay(1000);
   Serial.println(test_return);
   
 
   Serial.println("Setting up connection");
- 
-  delay(500);
+
   //changes to server mode
   Serial.println("Changing to server mode");
   sendData("AT+CWMODE=1\r\n", 1000, DEBUG);
   //check connection
   Serial.println("Checking connection");
   flag_wifi = sendData("AT+CWJAP?\r\n", 2000);
-  delay(2000);
+  delay(1000);
   //if answer is No AP (it's not connected)
   if (flag_wifi[0] == 'N'){
     Serial.println("Not connected to any AP. Trying to connect");
@@ -66,7 +65,10 @@ void setup() {
     delay(2000);
   }
   //when its connected
-  Serial.println("Connected");
+  Serial.println("Connected to wifi");
+  flag_wifi = sendData("AT+CWJAP?\r\n", 2000, DEBUG);
+  delay(1000);
+  Serial.println(flag_wifi);
     // Shows IP adress
   Serial.println("Checking IP");
   sendData("AT+CIFSR\r\n", 1000, DEBUG);
@@ -82,67 +84,39 @@ void setup() {
   Serial.println("End of setting up");
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-
-}
+void loop(){
+  // Checks if ESP8266 is available
+  if (esp8266.available()){
+    //finds the "IPD, " when ESP sends things to the serial input on arduino board
+    if (esp8266.find("+IPD,")){
+      delay(300);
+      //checks the ID number (the -48 is because of ascii characters)
+      int connectionId = esp8266.read() - 48;
  
-//void loop()
-//{
-//  // Verifica se o ESP8266 esta enviando dados
-//  if (esp8266.available())
-//  {
-//    if (esp8266.find("+IPD,"))
-//    {
-//      delay(300);
-//      int connectionId = esp8266.read() - 48;
-// 
-//      String webpage = "<head><meta http-equiv=""refresh"" content=""3"">";
-//      webpage += "</head><h1><u>ESP8266 - Web Server</u></h1><h2>Porta";
-//      webpage += "Digital 8: ";
-//      int a = digitalRead(8);
-//      webpage += a;
-//      webpage += "<h2>Porta Digital 9: ";
-//      int b = digitalRead(9);
-//      webpage += b;
-//      webpage += "</h2>";
-// 
-//      String cipSend = "AT+CIPSEND=";
-//      cipSend += connectionId;
-//      cipSend += ",";
-//      cipSend += webpage.length();
-//      cipSend += "rn";
-// 
-//      sendData(cipSend, 1000, DEBUG);
-//      sendData(webpage, 1000, DEBUG);
-// 
-//      String closeCommand = "AT+CIPCLOSE=";
-//      closeCommand += connectionId; // append connection id
-//      closeCommand += "rn";
-// 
-//      sendData(closeCommand, 3000, DEBUG);
-//    }
-//  }
-//}
-// 
-//String sendData(String command, const int timeout, boolean debug)
-//{
-//  // Envio dos comandos AT para o modulo
-//  String response = "";
-//  esp8266.print(command);
-//  long int time = millis();
-//  while ( (time + timeout) > millis())
-//  {
-//    while (esp8266.available())
-//    {
-//      // The esp has data so display its output to the serial window
-//      char c = esp8266.read(); // read the next character.
-//      response += c;
-//    }
-//  }
-//  if (debug)
-//  {
-//    Serial.print(response);
-//  }
-//  return response;
-//}
+      String webpage = "<head><meta http-equiv=""refresh"" content=""3"">";
+      webpage += "</head><h1><u>ESP8266 - Web Server</u></h1><h2>Porta";
+      webpage += "Digital 8: ";
+      int a = digitalRead(8);
+      webpage += a;
+      webpage += "<h2>Porta Digital 9: ";
+      int b = digitalRead(9);
+      webpage += b;
+      webpage += "</h2>";
+ 
+      String cipSend = "AT+CIPSEND=";
+      cipSend += connectionId;
+      cipSend += ",";
+      cipSend += webpage.length();
+      cipSend += "\r\n";
+ 
+      sendData(cipSend, 1000, DEBUG);
+      sendData(webpage, 1000, DEBUG);
+ 
+      String closeCommand = "AT+CIPCLOSE=";
+      closeCommand += connectionId; // append connection id
+      closeCommand += "\r\n";
+ 
+      sendData(closeCommand, 3000, DEBUG);
+    }
+  }
+}
