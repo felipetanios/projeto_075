@@ -101,7 +101,7 @@ void update_page(String a){
       int connectionId = esp8266.read() - 48;
  
       String webpage = "<head><meta http-equiv=""refresh"" content=""2"">";
-      webpage += "</head><h1><u>ESP8266 - Web Server</u></h1><h2>";
+      webpage += "</head><h2>";
       webpage += a;
       webpage += "</h2>";
  
@@ -114,11 +114,11 @@ void update_page(String a){
       sendData(cipSend, 500, DEBUG);
       sendData(webpage, 500, DEBUG);
  
-      String closeCommand = "AT+CIPCLOSE=";
-      closeCommand += connectionId; // append connection id
-      closeCommand += "\r\n";
- 
-      sendData(closeCommand, 3000, DEBUG);
+//      String closeCommand = "AT+CIPCLOSE=";
+//      closeCommand += connectionId; // append connection id
+//      closeCommand += "\r\n";
+// 
+//      sendData(closeCommand, 3000, DEBUG);
     }
   }
   Serial.println("updated webapge");
@@ -167,6 +167,8 @@ void Setting_ESP(){
   // Starts web server at port 80
   Serial.println("Starting server at port 80");
   sendData("AT+CIPSERVER=1,80\r\n", 1000, DEBUG);
+
+  Serial.println("printing web status");
 
   //disable echo
   sendData("ATE0\r\n", 2000);
