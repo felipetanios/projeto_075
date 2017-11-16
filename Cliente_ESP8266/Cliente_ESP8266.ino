@@ -105,20 +105,28 @@ void Setting_ESP(){
 void get_page(){
   String fetchdata = "";
   String response;
+  String filtered_html = "";
   String filtered_response = "";
-  int size_response;
-  int i;
+  int begin_html = 0;
+  int end_response = 0;
+  //send a get request to 
   fetchdata = "AT+CIPSEND=4,3\r\n";
-  sendData(fetchdata, 1000);
-  response = sendData("GET",1500);
+  sendData(fetchdata, 300);
+  response = sendData("GET",300);
   
-  Serial.println("imprimindo resposta");
-  Serial.println(response);
-//  filtered_response = response.substring(52);
-//  filtered_response = filtered_response.substring(0,filtered_response.indexOf('<'));
-//  Serial.println("Pringting Payload");
-//  Serial.println(response);
-//  Serial.println(filtered_response);
+  //Serial.println("imprimindo resposta");
+  //Serial.println(response);
+  //Gets the begining of payloads html from get request
+  begin_html = response.indexOf(':');
+  Serial.println(begin_html);
+  if (begin_html > 0){
+    filtered_html = response.substring(begin_html+1);
+    filtered_response = filtered_html.substring(52);
+    end_response = filtered_response.indexOf("<");
+    filtered_response = filtered_response.substring(0, end_response);
+    Serial.println(filtered_response);
+
+  }
 }
 
 
