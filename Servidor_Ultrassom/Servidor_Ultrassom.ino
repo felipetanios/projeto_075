@@ -23,11 +23,9 @@ Ultrasonic ultrasonic(pino_trigger, pino_echo);
 
 int i;
 long microsec;
-int flagPosicao = 0; // posicao 0 = parado; posicao 1 = aproxima; posicao 2 = afasta
-float distAnteriores[5]; // vetor para armazenar distancias anteriores
-float distanciaAtual; // variavel para armazenar distancia atual
-float aproximando, afastando; // variaveis contadoras para definir sentido do movimento
-int redundanciaAproxima = 0, redundanciaAfasta = 0; // variaveis de redundancia
+int dist;
+int movimento = 0;
+boolean estado = LOW;
 
 String IP = "";
 
@@ -52,9 +50,9 @@ void loop(){
   //lights up the control led so you can see that the configuration step is over
   digitalWrite(control_led, HIGH);
   ultrasound_status_update = ultrasound_status;
+  //ultrasound_status =  check_ultrassom();
 
-
-  Serial.println(ultrasound_status) ;
+  Serial.println(ultrasound_status);
 
   update_page(ultrasound_status);
 
@@ -179,81 +177,37 @@ void Setting_ESP(){
 //ultrasound chekcer function
 
 String check_ultrassom(){
-    // Le as informacoes do sensor em cm
+  // Le as informacoes do sensor em cm
   microsec = ultrasonic.timing();
-  distanciaAtual = ultrasonic.convert(microsec, Ultrasonic::CM);
-
-  // Zera variaveis contadoras
-  aproximando = 0;
-  afastando = 0;
+  dist = ultrasonic.convert(microsec, Ultrasonic::CM);
   
   // Condicao para tentar evitar bugs de distancias muito grandes
-  if (distanciaAtual < 500) { 
+  if (dist < 100) { // *distancia da parede deve ser menor que essa*
 
-    // Compara a distancia atual com as 5 ultimas distancias
-    for (i = 0; i < 5; i++) {
-      // Se a atual for menor, pessoa esta se aproximando
-      if (distAnteriores[i] - distanciaAtual > 5) {
-        aproximando++;
-      }
-      // Se a atual for maior, pessoa esta se afastando
-      else if (distanciaAtual - distAnteriores[i] > 5) {
-        afastando++;
-      }
-    }
-
-    // Opta pela opcao mais provavel e altera a flag de estado
-    if (aproximando > afastando) {
-      flagPosicao = 1;
-    }
-    else if (afastando > aproximando) {
-      flagPosicao = 2;
-    }
-    else {
-      flagPosicao = 0;
-    }
-
-    // Se a flag for 1, pessoa se aproxima. Incrementa a variavel de redundancia para aproximacao e zera a de redundancia para afastamento 
-    if (flagPosicao == 1) {
-      redundanciaAproxima++;
-      redundanciaAfasta = 0;
-    }
+    // Distancia máxima que a pessoa passa do sensor e é reconhecida
+    if (dist < 15) movimento++;
     
-    // Se a flag for 2, pessoa se afasta. Incrementa a variavel de redundancia para afastamento e zera a de redundancia para aproximacao
-    else if (flagPosicao == 2) {
-      redundanciaAfasta++;
-      redundanciaAproxima = 0;
+  //  Serial.println (dist);
+
+    // Numero de vezes que o programa precisa ler a distância menor para considerar a informação confiável
+    if (movimento == 3) {
+      while (dist < 15) { // entra num loop até a distancia voltar a ser grande
+        microsec = ultrasonic.timing();
+        dist = ultrasonic.convert(microsec, Ultrasonic::CM);
+        if (dist > 100) dist = 0; // ignora leitura de valores maiores que 100
+       // Serial.print ("lendo ");
+        //Serial.println (dist);
+      }
+      estado = !estado;
+      //digitalWrite(control_led, estado);
+      movimento = 0;
+      if (estado == HIGH) {
+        return "entrando";
+      }
+      else {
+        return "saindo";
+      }
     }
-
-    // Se a flag for 0, pessoa esta parada. Zera as variaveis de redundancia
-    else {
-      redundanciaAfasta = 0;
-      redundanciaAproxima = 0;
-    }
-
-    // Armazena distancias anteriores no vetor
-    for (i = 0; i < 4; i++) {
-      distAnteriores[i] = distAnteriores[i+1];
-    }
-    distAnteriores[4] = distanciaAtual;
-
-  }
-
-  // Se checar pelo menos 3 vezes seguidas que a pessoa esta se aproximando, considera que esta informacao eh confiavel e acende led verde
-  if (redundanciaAproxima >= 3) {    
-      //Serial.println("Pessoa se aproximando");
-      return "aproximando";
-  }
-
-  // Se checar pelo menos 3 vezes seguidas que a pessoa esta se afastando, considera que esta informacao eh confiavel e acende led amarelo
-  else if (redundanciaAfasta >= 3) {    
-      //Serial.println("Pessoa se afastando");
-      return "afastando";
-  }
-  // Considera que a pessoa esta parada e apaga leds.
-  else {
-      //Serial.println("Pessoa parada");
-      return "parada";
   }
 }
 
