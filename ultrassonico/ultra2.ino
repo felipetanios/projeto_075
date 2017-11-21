@@ -30,26 +30,32 @@ void loop() {
   dist = ultrasonic.convert(microsec, Ultrasonic::CM);
   
   // Condicao para tentar evitar bugs de distancias muito grandes
-  if (dist < 100) { 
+  if (dist < 100) { // *distancia da parede deve ser menor que essa*
 
-    if (dist < 30) movimento++;
+    // Distancia máxima que a pessoa passa do sensor e é reconhecida
+    if (dist < 15) movimento++;
     
     Serial.println (dist);
-    
-    if (movimento == 5) {
-      while (dist < 30) {
+
+    // Numero de vezes que o programa precisa ler a distância menor para considerar a informação confiável
+    if (movimento == 3) {
+      while (dist < 15) { // entra num loop até a distancia voltar a ser grande
         microsec = ultrasonic.timing();
         dist = ultrasonic.convert(microsec, Ultrasonic::CM);
-        if (dist > 100) dist = 0;
-        Serial.print ("lendo");
+        if (dist > 100) dist = 0; // ignora leitura de valores maiores que 100
+        Serial.print ("lendo ");
         Serial.println (dist);
-        delay(100);
       }
       estado = !estado;
       digitalWrite(control_led, estado);
       movimento = 0;
+      if (estado == HIGH) {
+        Serial.println("entrando");
+      }
+      else {
+        Serial.println("saindo");
+      }
     }
-    delay(100);
   }
  
 }
