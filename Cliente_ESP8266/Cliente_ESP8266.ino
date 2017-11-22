@@ -118,7 +118,7 @@ void get_page(){
   //Serial.println(response);
   //Gets the begining of payloads html from get request
   begin_html = response.indexOf(':');
-  Serial.println(begin_html);
+  //Serial.println(begin_html);
   if (begin_html > 0){
     filtered_html = response.substring(begin_html+1);
     filtered_response = filtered_html.substring(52);

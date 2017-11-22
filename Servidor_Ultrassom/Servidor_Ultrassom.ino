@@ -23,9 +23,11 @@ Ultrasonic ultrasonic(pino_trigger, pino_echo);
 
 int i;
 long microsec;
-int dist;
-int movimento = 0;
-boolean estado = LOW;
+int flagPosicao = 0; // posicao 0 = parado; posicao 1 = aproxima; posicao 2 = afasta
+float distAnteriores[5]; // vetor para armazenar distancias anteriores
+float distanciaAtual; // variavel para armazenar distancia atual
+float aproximando, afastando; // variaveis contadoras para definir sentido do movimento
+int redundanciaAproxima = 0, redundanciaAfasta = 0; // variaveis de redundancia
 
 String IP = "";
 
@@ -50,11 +52,21 @@ void loop(){
   //lights up the control led so you can see that the configuration step is over
   digitalWrite(control_led, HIGH);
   ultrasound_status_update = ultrasound_status;
-  //ultrasound_status =  check_ultrassom();
 
-  Serial.println(ultrasound_status);
-
-  update_page(ultrasound_status);
+  if (!(ultrasound_status == "parada")){
+    Serial.println(ultrasound_status) ;
+    update_page(ultrasound_status);
+    
+    //corrigindo o erro de uma atualização de status quando é feito um get no servidor
+//    if (ultrasound_status == "aproximando"){
+//      Serial.println("afastando") ;
+//      update_page("afastando"); 
+//    }
+//    else{
+//      Serial.println("aproximando") ;
+//      update_page("aproximando"); 
+//    }
+  }
 
   delay(1000);
 
@@ -111,16 +123,20 @@ void update_page(String a){
  
       sendData(cipSend, 500, DEBUG);
       sendData(webpage, 500, DEBUG);
- 
+      
+//      Closing connection      
 //      String closeCommand = "AT+CIPCLOSE=";
 //      closeCommand += connectionId; // append connection id
 //      closeCommand += "\r\n";
 // 
 //      sendData(closeCommand, 3000, DEBUG);
+
     }
   }
   Serial.println("updated webapge");
 }
+
+
 
 //function that sets ESP as a server to a single network
 void Setting_ESP(){  
@@ -177,39 +193,81 @@ void Setting_ESP(){
 //ultrasound chekcer function
 
 String check_ultrassom(){
-  // Le as informacoes do sensor em cm
+    // Le as informacoes do sensor em cm
   microsec = ultrasonic.timing();
-  dist = ultrasonic.convert(microsec, Ultrasonic::CM);
+  distanciaAtual = ultrasonic.convert(microsec, Ultrasonic::CM);
+
+  // Zera variaveis contadoras
+  aproximando = 0;
+  afastando = 0;
   
-  // Condicao para tentar evitar bugs de distancias muito grandes
-  if (dist < 100) { // *distancia da parede deve ser menor que essa*
+  // Condicao para tentar evitar bugs de distancias muito grandes (maiores que 30cm -> maquete)
+  if (distanciaAtual < 30) { 
 
-    // Distancia máxima que a pessoa passa do sensor e é reconhecida
-    if (dist < 15) movimento++;
-    
-  //  Serial.println (dist);
-
-    // Numero de vezes que o programa precisa ler a distância menor para considerar a informação confiável
-    if (movimento == 3) {
-      while (dist < 15) { // entra num loop até a distancia voltar a ser grande
-        microsec = ultrasonic.timing();
-        dist = ultrasonic.convert(microsec, Ultrasonic::CM);
-        if (dist > 100) dist = 0; // ignora leitura de valores maiores que 100
-       // Serial.print ("lendo ");
-        //Serial.println (dist);
+    // Compara a distancia atual com as 5 ultimas distancias
+    for (i = 0; i < 5; i++) {
+      // Se a atual for menor, pessoa esta se aproximando
+      if (distAnteriores[i] - distanciaAtual > 5) {
+        aproximando++;
       }
-      estado = !estado;
-      //digitalWrite(control_led, estado);
-      movimento = 0;
-      if (estado == HIGH) {
-        return "entrando";
-      }
-      else {
-        return "saindo";
+      // Se a atual for maior, pessoa esta se afastando
+      else if (distanciaAtual - distAnteriores[i] > 3) {
+        afastando++;
       }
     }
+
+    // Opta pela opcao mais provavel e altera a flag de estado
+    if (aproximando > afastando) {
+      flagPosicao = 1;
+    }
+    else if (afastando > aproximando) {
+      flagPosicao = 2;
+    }
+    else {
+      flagPosicao = 0;
+    }
+
+    // Se a flag for 1, pessoa se aproxima. Incrementa a variavel de redundancia para aproximacao e zera a de redundancia para afastamento 
+    if (flagPosicao == 1) {
+      redundanciaAproxima++;
+      redundanciaAfasta = 0;
+    }
+    
+    // Se a flag for 2, pessoa se afasta. Incrementa a variavel de redundancia para afastamento e zera a de redundancia para aproximacao
+    else if (flagPosicao == 2) {
+      redundanciaAfasta++;
+      redundanciaAproxima = 0;
+    }
+
+    // Se a flag for 0, pessoa esta parada. Zera as variaveis de redundancia
+    else {
+      redundanciaAfasta = 0;
+      redundanciaAproxima = 0;
+    }
+
+    // Armazena distancias anteriores no vetor
+    for (i = 0; i < 4; i++) {
+      distAnteriores[i] = distAnteriores[i+1];
+    }
+    distAnteriores[4] = distanciaAtual;
+
+  }
+
+  // Se checar pelo menos 3 vezes seguidas que a pessoa esta se aproximando, considera que esta informacao eh confiavel e acende led verde
+  if (redundanciaAproxima >= 3) {    
+      //Serial.println("Pessoa se aproximando");
+      return "aproximando";
+  }
+
+  // Se checar pelo menos 3 vezes seguidas que a pessoa esta se afastando, considera que esta informacao eh confiavel e acende led amarelo
+  else if (redundanciaAfasta >= 3) {    
+      //Serial.println("Pessoa se afastando");
+      return "afastando";
+  }
+  // Considera que a pessoa esta parada e apaga leds.
+  else {
+      //Serial.println("Pessoa parada");
+      return "parada";
   }
 }
-
-
 
