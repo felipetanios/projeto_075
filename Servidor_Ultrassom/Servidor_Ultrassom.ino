@@ -51,7 +51,8 @@ void setup() {
 void loop(){
   //lights up the control led so you can see that the configuration step is over
   digitalWrite(control_led, HIGH);
-  ultrasound_status_update = ultrasound_status;
+//  ultrasound_status_update = ultrasound_status;
+   ultrasound_status =  check_ultrassom();
 
   if (!(ultrasound_status == "parada")){
     Serial.println(ultrasound_status) ;
@@ -70,9 +71,9 @@ void loop(){
 
   delay(1000);
 
-  while(ultrasound_status == ultrasound_status_update){
-      ultrasound_status =  check_ultrassom();
-  }
+//  while(ultrasound_status == ultrasound_status_update){
+//      ultrasound_status =  check_ultrassom();
+//  }
 }
 
 /*

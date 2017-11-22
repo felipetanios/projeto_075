@@ -3,12 +3,16 @@
 //ESP_SET UP DEFINITIONS
 //software serial (TX, RX);
 SoftwareSerial esp8266(2, 3);
-String ultrasound_status;
-String ultrasound_status_update;
+String url_response;
 
 //Setando variaveis globais para teste do servidor
 #define DEBUG true
-int control_led = 11;
+int fan = 7;
+int luz1 = 8;
+int luz2 = 9;
+int luz3 = 10;
+int luz4 = 11;
+int luz5 = 12;
 
 void setup() {
    Serial.begin(9600);
@@ -17,15 +21,38 @@ void setup() {
   //set up ESP
 
   Setting_ESP();
-    
-  pinMode(control_led, OUTPUT);
+  pinMode(fan, OUTPUT);
+  pinMode(luz1, OUTPUT);
+  pinMode(luz2, OUTPUT);
+  pinMode(luz3, OUTPUT);
+  pinMode(luz4, OUTPUT);
+  pinMode(luz5, OUTPUT);
+  
 
 }
 
 void loop() {
+  //Serial.println("ligando");
   
-  get_page();
-  delay(1000);
+  url_response = get_page();
+  Serial.println (url_response);
+  if (url_response == "aproximando"){
+    digitalWrite(fan, LOW);
+    digitalWrite(luz1, LOW);
+    digitalWrite(luz2, LOW);
+    digitalWrite(luz3, LOW);
+    digitalWrite(luz4, LOW);
+    digitalWrite(luz5, LOW);
+  }
+  if (url_response == "afastando"){
+    digitalWrite(fan, HIGH);
+    digitalWrite(luz1, HIGH);
+    digitalWrite(luz2, HIGH);
+    digitalWrite(luz3, HIGH);
+    digitalWrite(luz4, HIGH);
+    digitalWrite(luz5, HIGH);
+  }
+  
 }
 
 
@@ -97,12 +124,13 @@ void Setting_ESP(){
   Serial.println("Connecting to server");
   sendData("AT+CIPCLOSE=4\r\n",2000,DEBUG);
   String getTCP = "";
-  getTCP = "AT+CIPSTART=4,\"TCP\",\"192.168.108.2\",80\r\n";
+  getTCP = "AT+CIPSTART=4,\"TCP\",\"192.168.108.3\",80\r\n";
   sendData(getTCP, 2000, DEBUG);
   Serial.println("Connected to server");
 }
 
-void get_page(){
+String get_page(){
+  //Serial.println("fetching data from server");
   String fetchdata = "";
   String response;
   String filtered_html = "";
@@ -118,14 +146,15 @@ void get_page(){
   //Serial.println(response);
   //Gets the begining of payloads html from get request
   begin_html = response.indexOf(':');
-  //Serial.println(begin_html);
+  Serial.println(begin_html);
   if (begin_html > 0){
     filtered_html = response.substring(begin_html+1);
     filtered_response = filtered_html.substring(52);
     end_response = filtered_response.indexOf("<");
     filtered_response = filtered_response.substring(0, end_response);
-    Serial.println(filtered_response);
 
+    //returns the string fetched on servers posted url
+    return filtered_response;
   }
 }
 
