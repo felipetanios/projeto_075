@@ -12,7 +12,6 @@ int luz1 = 8;
 int luz2 = 9;
 int luz3 = 10;
 int luz4 = 11;
-int luz5 = 12;
 
 void setup() {
    Serial.begin(9600);
@@ -26,7 +25,6 @@ void setup() {
   pinMode(luz2, OUTPUT);
   pinMode(luz3, OUTPUT);
   pinMode(luz4, OUTPUT);
-  pinMode(luz5, OUTPUT);
   
 
 }
@@ -42,7 +40,6 @@ void loop() {
     digitalWrite(luz2, LOW);
     digitalWrite(luz3, LOW);
     digitalWrite(luz4, LOW);
-    digitalWrite(luz5, LOW);
   }
   if (url_response == "afastando"){
     digitalWrite(fan, HIGH);
@@ -50,7 +47,6 @@ void loop() {
     digitalWrite(luz2, HIGH);
     digitalWrite(luz3, HIGH);
     digitalWrite(luz4, HIGH);
-    digitalWrite(luz5, HIGH);
   }
   
 }
@@ -124,7 +120,7 @@ void Setting_ESP(){
   Serial.println("Connecting to server");
   sendData("AT+CIPCLOSE=4\r\n",2000,DEBUG);
   String getTCP = "";
-  getTCP = "AT+CIPSTART=4,\"TCP\",\"192.168.108.3\",80\r\n";
+  getTCP = "AT+CIPSTART=4,\"TCP\",\"192.168.108.6\",80\r\n";
   sendData(getTCP, 2000, DEBUG);
   Serial.println("Connected to server");
 }

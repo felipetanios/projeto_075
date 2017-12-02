@@ -208,7 +208,7 @@ String check_ultrassom(){
     // Compara a distancia atual com as 5 ultimas distancias
     for (i = 0; i < 5; i++) {
       // Se a atual for menor, pessoa esta se aproximando
-      if (distAnteriores[i] - distanciaAtual > 5) {
+      if (distAnteriores[i] - distanciaAtual > 3) {
         aproximando++;
       }
       // Se a atual for maior, pessoa esta se afastando
