@@ -7,7 +7,7 @@
 *Função de configuração tambem baseada nesse tutorial
 *Lista de comandos AT (protocolo de comunicação do ESP8266)
 *https://room-15.github.io/blog/2015/03/26/esp8266-at-command-reference/
-*
+*Biblioteca ultrassonic utilizada: http://www.arduinolibraries.info/libraries/ultrasonic
 */
 
 /* DEFINIÇÕES DO ESP */
@@ -75,8 +75,6 @@ void loop(){
 
 /*FUNÇÃO PARA COMUNICAÇÃO SERIAL ENTRE ARDUINO E ESP8266*/
 
-
-//function to communicate arduino to ESP
 String sendData(String command, const int timeout, boolean debug = false){
   // Send AT commands
   String response = "";
@@ -169,7 +167,9 @@ void Setting_ESP(){
 
   Serial.println("Setting up connection");
 
-  //mudamos para modo servidor
+
+  //Muda o ESP para o modo 1 (modo Station, não Access Point)
+  
   Serial.println("Changing to server mode");
   sendData("AT+CWMODE=1\r\n", 1000, DEBUG);
   //Checa se o ESP esta conectado
