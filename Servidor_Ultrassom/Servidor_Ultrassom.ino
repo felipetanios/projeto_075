@@ -2,7 +2,17 @@
 #include <Ultrasonic.h>
 
 
-//ESP_SET UP DEFINITIONS
+/*
+*Função sendData obtida no tutorial https://www.filipeflop.com/blog/esp8266-arduino-tutorial/
+*Função de configuração tambem baseada nesse tutorial
+*Lista de comandos AT (protocolo de comunicação do ESP8266)
+*https://room-15.github.io/blog/2015/03/26/esp8266-at-command-reference/
+*
+*/
+
+/* DEFINIÇÕES DO ESP */
+
+//Settando as configurações para comunicação serial entre arduino e ESP8266
 //software serial (TX, RX);
 SoftwareSerial esp8266(2, 3);
 String ultrasound_status;
@@ -34,9 +44,9 @@ String IP = "";
 void setup() {
   
   Serial.begin(9600);
-  //esp8266  baudrate previously changed to 19200 (standard is 115200)
+  //esp8266  baudrate mudado anteriormente para 19200 (o padrão é 115200)
   esp8266.begin(19200);
-  //set up ESP
+  //Configura o ESP
 
   Setting_ESP();
     
@@ -49,38 +59,21 @@ void setup() {
 }
 
 void loop(){
-  //lights up the control led so you can see that the configuration step is over
+  //Liga um led quando o servidor esta configurado e funcionando
   digitalWrite(control_led, HIGH);
-//  ultrasound_status_update = ultrasound_status;
+  
    ultrasound_status =  check_ultrassom();
 
   if (!(ultrasound_status == "parada")){
     Serial.println(ultrasound_status) ;
     update_page(ultrasound_status);
-    
-    //corrigindo o erro de uma atualização de status quando é feito um get no servidor
-//    if (ultrasound_status == "aproximando"){
-//      Serial.println("afastando") ;
-//      update_page("afastando"); 
-//    }
-//    else{
-//      Serial.println("aproximando") ;
-//      update_page("aproximando"); 
-//    }
   }
 
   delay(1000);
 
-//  while(ultrasound_status == ultrasound_status_update){
-//      ultrasound_status =  check_ultrassom();
-//  }
 }
 
-/*
-*
-*ALL THE FUNCTIONS USED ARE SET HERE
-*
-*/
+/*FUNÇÃO PARA COMUNICAÇÃO SERIAL ENTRE ARDUINO E ESP8266*/
 
 
 //function to communicate arduino to ESP
@@ -102,20 +95,34 @@ String sendData(String command, const int timeout, boolean debug = false){
 }
 
 
-//Function that pushes a html to server ip adress
+/*
+*
+*TODAS AS FUNÇÕES CRIADAS POR NOSSO GRUPO SÃO DEFINIDAS A PARTIR DAQUI
+*
+*/
+
+/*FUNÇÃO PARA POST DE UMA PAGINA NO SERVIDOR PELO PRÓPRIO SERVIDOR*/
+
+//Essa função faz um post de uma página HTML contendo a palavra _a_ no IP do servidor
+
 void update_page(String a){
   if (esp8266.available()){
-    //finds the "IPD, " when ESP sends things to the serial input on arduino board
+    //Acha o começo da resposta do TCP/IP para ver o Id de conexão
     if (esp8266.find("+IPD,")){
       delay(100);
-      //checks the connection ID number (the -48 is because of ascii characters)
+      //Esse ID é a primeira coisa depois de +IPD, na resposta, porem como é uma string, precisamos transformar o numero
+      //de ASCII para inteiro
       int connectionId = esp8266.read() - 48;
- 
+
+
+      //Define a página HTML a ser postada no endereço de IP do próprio servidor
       String webpage = "<head><meta http-equiv=""refresh"" content=""2"">";
       webpage += "</head><h2>";
       webpage += a;
       webpage += "</h2>";
- 
+
+      //Envia a define o que vai ser enviado para o IP do servidor (o comando AT+CIPSEND tem como parametros
+      //A o ID de conexão e o tamanho da string a ser enviada
       String cipSend = "AT+CIPSEND=";
       cipSend += connectionId;
       cipSend += ",";
@@ -125,12 +132,6 @@ void update_page(String a){
       sendData(cipSend, 500, DEBUG);
       sendData(webpage, 500, DEBUG);
       
-//      Closing connection      
-//      String closeCommand = "AT+CIPCLOSE=";
-//      closeCommand += connectionId; // append connection id
-//      closeCommand += "\r\n";
-// 
-//      sendData(closeCommand, 3000, DEBUG);
 
     }
   }
@@ -139,53 +140,66 @@ void update_page(String a){
 
 
 
-//function that sets ESP as a server to a single network
+/* FUNÇÃO DE CONFIGURAÇÃO INICIAL DO ESP8266 COMO SERVIDOR PARA MULTIPLAS CONEXÕES*/
+
 void Setting_ESP(){  
   String test_return;
   String flag_wifi;
   
+  /*
+  *inicialmente  se testa simplesmente se o ESP8266 está se comunicando com o arduino
+  */
+  
   Serial.println("testing ESP8266");
-  //enable echo
+  
+  //Comando para que o ESP imprima o comando que foi enviado a ele e a resposta (echo)
+  
   sendData("ATE1\r\n", 2000); 
-  // recieves version just for testing
+  
+  //Comando para imprimir versão do ESP e do firmware dele
+  
   test_return = sendData("AT+GMR\r\n", 2000); 
+  
   Serial.println(test_return);
   
+  
+  /*
+   * Agora conectamos o ESP a rede e o configuramos como servidor
+   */
 
   Serial.println("Setting up connection");
 
-  //changes to server mode
+  //mudamos para modo servidor
   Serial.println("Changing to server mode");
   sendData("AT+CWMODE=1\r\n", 1000, DEBUG);
-  //check connection
+  //Checa se o ESP esta conectado
   Serial.println("Checking connection");
   flag_wifi = sendData("AT+CWJAP?\r\n", 2000);
-  //if answer is No AP (it's not connected)
+
   if (flag_wifi[0] == 'N'){
+    //Se ele nao estiver conectado a nenhum AP (access point) temos que conecta-lo
     Serial.println("Not connected to any AP. Trying to connect");
-    //trying to connecto to internet
-    //connect to wifi
-    //AT command = AT+CWJAP="SSID","password"
-    //this part is messy, but if it does not work, you can set it up by hand through arduino tx/rx serial connection
+    //O comando AT utilizado é o AT+CWJAP="ssid","senha"
     sendData("AT+CWJAP=""tanios"",""bicicleta""\r\n", 2000, DEBUG);
   }
-  //when its connected
+  
+  //Quando o ESP Estiver conectado
   Serial.println("Connected to wifi");
   flag_wifi = sendData("AT+CWJAP?\r\n", 2000, DEBUG);
   Serial.println(flag_wifi);
-    // Shows IP adress
+  //Imprime o IP dele (servidor)
   Serial.println("Checking IP");
   sendData("AT+CIFSR\r\n", 1000, DEBUG);
-  // Sets the server to multiple connections
+  //E configura para multiplas conexões
   Serial.println("Setting Server to multiple connections");
   sendData("AT+CIPMUX=1\r\n", 1000, DEBUG);
-  // Starts web server at port 80
+  //Então incia o servidor na porta 80
   Serial.println("Starting server at port 80");
   sendData("AT+CIPSERVER=1,80\r\n", 1000, DEBUG);
 
   Serial.println("printing web status");
 
-  //disable echo
+  //Por fim desabilita a função que faz com que o ESP imprima o comando mandado para ele (disable echo)
   sendData("ATE0\r\n", 2000);
   Serial.println("End of setting up");
 }
